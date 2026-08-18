@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Questionnaire interactif</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4f5f7;
+      color: #222;
+    }
+
+    .container {
+      width: min(800px, calc(100% - 32px));
+      margin: 40px auto;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+    }
+
+    .upload {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    .question {
+      background: white;
+      padding: 24px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    .question h2 {
+      font-size: 1.2rem;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
+    .answer {
+      display: block;
+      padding: 12px 14px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .answer:hover {
+      background: #f5f7ff;
+      border-color: #8b9cff;
+    }
+
+    .answer input {
+      margin-right: 10px;
+    }
+
+    button {
+      border: 0;
+      background: #4263eb;
+      color: white;
+      padding: 14px 22px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #364fc7;
+    }
+
+    #submitButton {
+      margin-top: 10px;
+    }
+
+    #result {
+      display: none;
+      background: white;
+      padding: 30px;
+      margin-top: 30px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    }
+
+    #score {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .correct {
+      background: #d3f9d8 !important;
+      border-color: #51cf66 !important;
+    }
+
+    .incorrect {
+      background: #ffe3e3 !important;
+      border-color: #ff6b6b !important;
+    }
+
+    .feedback {
+      margin-top: 15px;
+      font-weight: 600;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .error {
+      color: #c92a2a;
+      background: #ffe3e3;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1 id="quizTitle">Questionnaire</h1>
+
+  <div class="upload">
+    <label for="markdownFile">
+      <strong>Choisir un fichier Markdown</strong>
+    </label>
+
+    <br><br>
+
+    <input
+      type="file"
+      id="markdownFile"
+      accept=".md,.markdown,text/markdown,text/plain"
+    >
+
+    <p>
+      Sélectionnez un fichier <code>.md</code> contenant vos questions.
+    </p>
+
+    <div id="error"></div>
+  </div>
+
+  <form id="quiz"></form>
+
+  <button id="submitButton" class="hidden" type="button">
+    Voir mon résultat
+  </button>
+
+  <div id="result">
+    <div id="score"></div>
+    <div id="scoreMessage"></div>
+    <button type="button" id="restartButton">
+      Recommencer
+    </button>
+  </div>
+
+</div>
+
+
+<script>
+
+  let questions = [];
+
+  /*
+   * ---------------------------------------------------------
+   * Lecture du fichier Markdown
+   * ---------------------------------------------------------
+   */
+
+  document
+    .getElementById("markdownFile")
+    .addEventListener("change", function(event) {
+
+      const file = event.target.files[0];
+
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const markdown = e.target.result;
+
+        try {
+          questions = parseMarkdown(markdown);
+
+          if (questions.length === 0) {
+            throw new Error(
+              "Aucune question trouvée dans le fichier."
+            );
+          }
+
+          displayQuiz(questions);
+
+        } catch (error) {
+
+          document.getElementById("error").innerHTML =
+            `<div class="error">${error.message}</div>`;
+
+        }
+      };
+
+      reader.readAsText(file);
+    });
+
+
+  /*
+   * ---------------------------------------------------------
+   * Parser Markdown
+   * ---------------------------------------------------------
+   *
+   * Format attendu :
+   *
+   * ## Question 1: Une expérience multimédia est :
+   *
+   * - [ ] Un logiciel informatique
+   * - [x] Un parcours créé à partir de plusieurs médias
+   * - [ ] Une œuvre uniquement audiovisuelle
+   *
+   */
+
+  function parseMarkdown(markdown) {
+
+    const lines = markdown.split(/\r?\n/);
+
+    const parsedQuestions = [];
+
+    let currentQuestion = null;
+
+    for (let line of lines) {
+
+      line = line.trim();
+
+      /*
+       * Nouveau titre de question
+       *
+       * Accepte :
+       * ## Question 1: Texte
+       * Question 1: Texte
+       */
+
+      const questionMatch = line.match(
+        /^(?:##\s*)?Question\s+(\d+)\s*:\s*(.+)$/i
+      );
+
+      if (questionMatch) {
+
+        if (currentQuestion) {
+          parsedQuestions.push(currentQuestion);
+        }
+
+        currentQuestion = {
+          number: parseInt(questionMatch[1]),
+          text: questionMatch[2].trim(),
+          answers: []
+        };
+
+        continue;
+      }
+
+      /*
+       * Réponse :
+       *
+       * - [ ] Réponse
+       * - [x] Bonne réponse
+       */
+
+      if (currentQuestion) {
+
+        const answerMatch = line.match(
+          /^-\s*\[\s*([xX ])\s*\]\s*(.+)$/
+        );
+
+        if (answerMatch) {
+
+          const isCorrect =
+            answerMatch[1].toLowerCase() === "x";
+
+          const answerText =
+            answerMatch[2].trim();
+
+          currentQuestion.answers.push({
+            text: answerText,
+            correct: isCorrect
+          });
+        }
+      }
+    }
+
+    /*
+     * Ajouter la dernière question
+     */
+
+    if (currentQuestion) {
+      parsedQuestions.push(currentQuestion);
+    }
+
+    /*
+     * Vérifications
+     */
+
+    for (const question of parsedQuestions) {
+
+      if (question.answers.length === 0) {
+        console.warn(
+          `La question ${question.number} n'a aucune réponse.`
+        );
+      }
+
+      const correctAnswers =
+        question.answers.filter(answer => answer.correct);
+
+      if (correctAnswers.length === 0) {
+        console.warn(
+          `La question ${question.number} n'a pas de bonne réponse.`
+        );
+      }
+    }
+
+    return parsedQuestions;
+  }
+
+
+  /*
+   * ---------------------------------------------------------
+   * Affichage du questionnaire
+   * ---------------------------------------------------------
+   */
+
+  function displayQuiz(questions) {
+
+    const quiz =
+      document.getElementById("quiz");
+
+    quiz.innerHTML = "";
+
+    document
+      .getElementById("result")
+      .style.display = "none";
+
+    document
+      .getElementById("submitButton")
+      .classList.remove("hidden");
+
+
+    questions.forEach((question, questionIndex) => {
+
+      const questionElement =
+        document.createElement("div");
+
+      questionElement.className = "question";
+
+      questionElement.innerHTML = `
+        <h2>
+          Question ${question.number} :
+          ${escapeHTML(question.text)}
+        </h2>
+      `;
+
+
+      question.answers.forEach(
+        (answer, answerIndex) => {
+
+          const label =
+            document.createElement("label");
+
+          label.className = "answer";
+
+          label.innerHTML = `
+            <input
+              type="radio"
+              name="question-${questionIndex}"
+              value="${answerIndex}"
+            >
+            ${escapeHTML(answer.text)}
+          `;
+
+          questionElement.appendChild(label);
+        }
+      );
+
+
+      quiz.appendChild(questionElement);
+    });
+  }
+
+
+  /*
+   * ---------------------------------------------------------
+   * Calcul du score
+   * ---------------------------------------------------------
+   */
+
+  document
+    .getElementById("submitButton")
+    .addEventListener("click", function() {
+
+      let score = 0;
+
+      const questionElements =
+        document.querySelectorAll(".question");
+
+
+      questions.forEach(
+        (question, questionIndex) => {
+
+          const selected =
+            document.querySelector(
+              `input[name="question-${questionIndex}"]:checked`
+            );
+
+          const questionElement =
+            questionElements[questionIndex];
+
+          const answers =
+            questionElement.querySelectorAll(".answer");
+
+
+          /*
+           * Identifier les bonnes réponses
+           */
+
+          question.answers.forEach(
+            (answer, answerIndex) => {
+
+              if (answer.correct) {
+                answers[answerIndex]
+                  .classList.add("correct");
+              }
+            }
+          );
+
+
+          /*
+           * Aucune réponse
+           */
+
+          if (!selected) {
+
+            questionElement.innerHTML += `
+              <div class="feedback">
+                ⚠️ Aucune réponse sélectionnée.
+              </div>
+            `;
+
+            return;
+          }
+
+
+          const selectedIndex =
+            parseInt(selected.value);
+
+          const selectedAnswer =
+            question.answers[selectedIndex];
+
+
+          /*
+           * Bonne réponse
+           */
+
+          if (selectedAnswer.correct) {
+
+            score++;
+
+            answers[selectedIndex]
+              .classList.add("correct");
+
+            questionElement.innerHTML += `
+              <div class="feedback">
+                ✓ Bonne réponse !
+              </div>
+            `;
+
+          }
+
+          /*
+           * Mauvaise réponse
+           */
+
+          else {
+
+            answers[selectedIndex]
+              .classList.add("incorrect");
+
+            questionElement.innerHTML += `
+              <div class="feedback">
+                ✗ Mauvaise réponse.
+              </div>
+            `;
+          }
+        }
+      );
+
+
+      /*
+       * Affichage du résultat
+       */
+
+      const percentage =
+        Math.round(
+          (score / questions.length) * 100
+        );
+
+
+      document.getElementById("score").textContent =
+        `${score} / ${questions.length} — ${percentage}%`;
+
+
+      let message = "";
+
+      if (percentage === 100) {
+        message = "Excellent ! 🎉";
+      }
+      else if (percentage >= 80) {
+        message = "Très bon résultat !";
+      }
+      else if (percentage >= 60) {
+        message = "Bon résultat, mais il reste quelques notions à revoir.";
+      }
+      else {
+        message = "Certaines notions méritent d'être revues.";
+      }
+
+
+      document
+        .getElementById("scoreMessage")
+        .textContent = message;
+
+
+      document
+        .getElementById("result")
+        .style.display = "block";
+
+
+      /*
+       * Désactiver les réponses après correction
+       */
+
+      document
+        .querySelectorAll("#quiz input")
+        .forEach(input => {
+          input.disabled = true;
+        });
+
+
+      document
+        .getElementById("submitButton")
+        .classList.add("hidden");
+
+
+      /*
+       * Aller au résultat
+       */
+
+      document
+        .getElementById("result")
+        .scrollIntoView({
+          behavior: "smooth"
+        });
+    });
+
+
+  /*
+   * ---------------------------------------------------------
+   * Recommencer
+   * ---------------------------------------------------------
+   */
+
+  document
+    .getElementById("restartButton")
+    .addEventListener("click", function() {
+
+      displayQuiz(questions);
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    });
+
+
+  /*
+   * ---------------------------------------------------------
+   * Sécurité : éviter d'interpréter le texte comme HTML
+   * ---------------------------------------------------------
+   */
+
+  function escapeHTML(text) {
+
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+</script>
+
+</body>
+</html>
