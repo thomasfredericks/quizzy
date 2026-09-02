@@ -32,6 +32,6 @@ if (x > 5) {
 - [ ] Elles terminent l'instruction `printf`
 ````
 ... into this :
-
+![](demo.png)
 
 Interactive demo : [t-o-f.info/quizzy/cpp](https://t-o-f.info/quizzy/cpp/)_
