@@ -36,4 +36,4 @@ if (x > 5) {
 
 ![](demo.png)
 
-Interactive demo : [t-o-f.info/quizzy/demos/cpp](https://t-o-f.info/quizzy/demos/cpp/)_
+Interactive demo : [t-o-f.info/quizzy/quizzy.html](https://t-o-f.info/quizzy/quizzy.html)
