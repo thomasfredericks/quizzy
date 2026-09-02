@@ -9,14 +9,15 @@
 
 ## Que signifie la déclaration suivante ?
 
+```cpp
+int compteur = 0;
+```
+
 - [ ] `compteur` est une variable de type `float` contenant 0
 - [ ] `compteur` est une fonction qui retourne 0
 - [x] `compteur` est une variable de type `int` dont la valeur initiale est 0
 - [ ] `compteur` est une constante qui ne peut pas être modifiée
 
-```cpp
-int compteur = 0;
-```
 
 ## Quel type est le plus approprié pour stocker une valeur qui peut être uniquement `true` ou `false` ?
 
