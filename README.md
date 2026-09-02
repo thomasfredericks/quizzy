@@ -3,6 +3,7 @@
 Makes interactive quizzes from Markdown files.
 
 For example, it converts this ... :
+
 ````
 ## Quel symbole délimite le bloc d'instructions d'une fonction en C++ ?
 
