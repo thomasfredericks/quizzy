@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Questionnaire interactif</title>
+
+  <!-- Prism.js -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css"
+  >
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+      background: #f4f5f7;
+      color: #222;
+    }
+
+    .container {
+      width: min(800px, calc(100% - 32px));
+      margin: 40px auto;
+    }
+
+    h1 {
+      margin-bottom: 30px;
+    }
+
+    .question {
+      background: white;
+      padding: 24px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    .question h2 {
+      font-size: 1.2rem;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
+    .answer {
+      display: block;
+      padding: 12px 14px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      transition:
+        background 0.15s,
+        border-color 0.15s;
+    }
+
+    .answer:hover {
+      background: #f5f7ff;
+      border-color: #8b9cff;
+    }
+
+    .answer input {
+      margin-right: 10px;
+      vertical-align: top;
+      margin-top: 4px;
+    }
+
+    .answer-content {
+      display: inline-block;
+      vertical-align: top;
+      width: calc(100% - 35px);
+    }
+
+    /*
+     * Code inline provenant de `...`
+     */
+
+    code.inline-code {
+      background: #f1f3f5;
+      color: #c92a2a;
+      padding: 2px 6px;
+      border-radius: 5px;
+
+      font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        "Liberation Mono",
+        monospace;
+
+      font-size: 0.9em;
+    }
+
+    /*
+     * Blocs de code Prism
+     */
+
+    pre[class*="language-"] {
+      border-radius: 8px;
+      margin: 15px 0;
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    code[class*="language-"] {
+      font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        "Liberation Mono",
+        monospace;
+    }
+
+    .answer-code {
+      width: 100%;
+      margin-top: 12px !important;
+    }
+
+    button {
+      border: 0;
+      background: #4263eb;
+      color: white;
+      padding: 14px 22px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #364fc7;
+    }
+
+    #submitButton {
+      margin-top: 10px;
+    }
+
+    #result {
+      display: none;
+      background: white;
+      padding: 30px;
+      margin-top: 30px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    #score {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .correct {
+      background: #d3f9d8 !important;
+      border-color: #51cf66 !important;
+    }
+
+    .incorrect {
+      background: #ffe3e3 !important;
+      border-color: #ff6b6b !important;
+    }
+
+    .feedback {
+      margin-top: 15px;
+      font-weight: 600;
+    }
+
+    .error {
+      color: #c92a2a;
+      background: #ffe3e3;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+
+    .loading {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .saved-result {
+      margin-top: 12px;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1 id="quizTitle">Questionnaire</h1>
+
+  <div id="loading" class="loading">
+    Chargement du questionnaire...
+  </div>
+
+  <div id="error"></div>
+
+  <form id="quiz"></form>
+
+  <button
+    id="submitButton"
+    type="button"
+    style="display: none;"
+  >
+    Voir mon résultat
+  </button>
+
+  <div id="result">
+
+    <div id="score"></div>
+
+    <div id="scoreMessage"></div>
+
+    <div
+      id="savedResult"
+      class="saved-result"
+      style="display: none;"
+    >
+      Résultat enregistré dans ce navigateur.
+    </div>
+
+    <br>
+
+    <button
+      type="button"
+      id="restartButton"
+    >
+      Recommencer
+    </button>
+
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     PRISM.JS
+
+     IMPORTANT :
+     C++ dépend des définitions chargées par C.
+     L'ordre est donc volontairement :
+     
+     1. Prism
+     2. C
+     3. C++
+     ========================================================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-c.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-cpp.min.js"></script>
+
+
+<script>
+
+  let questions = [];
+
+
+  /*
+   * =========================================================
+   * CONFIGURATION DU STOCKAGE
+   * =========================================================
+   */
+
+  const MARKDOWN_FILE = "questions.md";
+
+  const MARKDOWN_URL =
+    new URL(
+      MARKDOWN_FILE,
+      window.location.href
+    );
+
+  const STORAGE_KEY =
+    `questionnaire:${MARKDOWN_URL.pathname}:result`;
+
+
+  /*
+   * =========================================================
+   * CHARGEMENT DU MARKDOWN
+   * =========================================================
+   */
+
+  window.addEventListener(
+    "DOMContentLoaded",
+    async function() {
+
+      try {
+
+        const response =
+          await fetch(MARKDOWN_FILE);
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            "Impossible de charger le fichier " +
+            MARKDOWN_FILE
+          );
+
+        }
+
+
+        const markdown =
+          await response.text();
+
+
+        questions =
+          parseMarkdown(markdown);
+
+
+        if (questions.length === 0) {
+
+          throw new Error(
+            "Aucune question trouvée dans " +
+            MARKDOWN_FILE +
+            "."
+          );
+
+        }
+
+
+        displayQuiz(questions);
+
+
+        document
+          .getElementById("loading")
+          .style.display = "none";
+
+
+        restoreSavedState();
+
+      }
+      catch (error) {
+
+        document
+          .getElementById("loading")
+          .style.display = "none";
+
+
+        document
+          .getElementById("error")
+          .innerHTML = `
+            <div class="error">
+              <strong>Erreur :</strong><br>
+              ${escapeHTML(error.message)}
+              <br><br>
+              Vérifiez que
+              <strong>${escapeHTML(MARKDOWN_FILE)}</strong>
+              se trouve dans le même dossier que ce fichier HTML.
+            </div>
+          `;
+
+      }
+
+    }
+  );
+
+
+  /*
+   * =========================================================
+   * PARSER MARKDOWN
+   * =========================================================
+   */
+
+  function parseMarkdown(markdown) {
+
+    const lines =
+      markdown.split(/\r?\n/);
+
+    const parsedQuestions = [];
+
+    let currentQuestion = null;
+    let currentAnswer = null;
+
+    let inCodeBlock = false;
+    let codeLines = [];
+    let codeLanguage = "cpp";
+
+
+    for (const line of lines) {
+
+      const trimmedLine =
+        line.trim();
+
+
+      /*
+       * -------------------------------------------------------
+       * Début / fin d'un bloc de code
+       * -------------------------------------------------------
+       */
+
+      if (trimmedLine.startsWith("```")) {
+
+        if (!inCodeBlock) {
+
+          inCodeBlock = true;
+
+          codeLines = [];
+
+
+          /*
+           * Récupérer le langage :
+           *
+           * ```cpp
+           * ```c
+           * ```
+           */
+
+          const language =
+            trimmedLine
+              .substring(3)
+              .trim()
+              .toLowerCase();
+
+
+          codeLanguage =
+            language || "cpp";
+
+        }
+        else {
+
+          inCodeBlock = false;
+
+
+          const code =
+            codeLines.join("\n");
+
+
+          /*
+           * Le bloc appartient à la réponse
+           * si une réponse est actuellement ouverte.
+           */
+
+          if (currentAnswer) {
+
+            currentAnswer.code =
+              code;
+
+            currentAnswer.language =
+              codeLanguage;
+
+          }
+
+          else if (currentQuestion) {
+
+            currentQuestion.code =
+              code;
+
+            currentQuestion.language =
+              codeLanguage;
+
+          }
+
+
+          codeLines = [];
+
+        }
+
+        continue;
+      }
+
+
+      /*
+       * -------------------------------------------------------
+       * Ligne à l'intérieur d'un bloc de code
+       * -------------------------------------------------------
+       */
+
+      if (inCodeBlock) {
+
+        codeLines.push(line);
+
+        continue;
+      }
+
+
+      /*
+       * -------------------------------------------------------
+       * Titre principal
+       * -------------------------------------------------------
+       */
+
+      const titleMatch =
+        trimmedLine.match(
+          /^#\s+(.+)$/
+        );
+
+
+      if (
+        titleMatch &&
+        !currentQuestion
+      ) {
+
+        document
+          .getElementById("quizTitle")
+          .textContent =
+            titleMatch[1].trim();
+
+        continue;
+      }
+
+
+      /*
+       * -------------------------------------------------------
+       * Nouvelle question
+       * -------------------------------------------------------
+       */
+
+      const questionMatch =
+        trimmedLine.match(
+          /^##\s+(.+)$/
+        );
+
+
+      if (questionMatch) {
+
+        if (currentQuestion) {
+
+          parsedQuestions.push(
+            currentQuestion
+          );
+
+        }
+
+
+        currentQuestion = {
+
+          number:
+            parsedQuestions.length + 1,
+
+          text:
+            questionMatch[1].trim(),
+
+          code:
+            null,
+
+          language:
+            "cpp",
+
+          answers:
+            []
+
+        };
+
+
+        currentAnswer = null;
+
+        continue;
+      }
+
+
+      /*
+       * -------------------------------------------------------
+       * Pas encore de question
+       * -------------------------------------------------------
+       */
+
+      if (!currentQuestion) {
+
+        continue;
+
+      }
+
+
+      /*
+       * -------------------------------------------------------
+       * Nouvelle réponse
+       * -------------------------------------------------------
+       */
+
+      const answerMatch =
+        trimmedLine.match(
+          /^-\s*\[\s*([xX ])\s*\]\s*(.*)$/
+        );
+
+
+      if (answerMatch) {
+
+        currentAnswer = {
+
+          text:
+            answerMatch[2].trim(),
+
+          correct:
+            answerMatch[1].toLowerCase() === "x",
+
+          code:
+            null,
+
+          language:
+            "cpp"
+
+        };
+
+
+        currentQuestion.answers.push(
+          currentAnswer
+        );
+
+
+        continue;
+      }
+
+    }
+
+
+    /*
+     * Ajouter la dernière question.
+     */
+
+    if (currentQuestion) {
+
+      parsedQuestions.push(
+        currentQuestion
+      );
+
+    }
+
+
+    /*
+     * Vérifications.
+     */
+
+    parsedQuestions.forEach(
+      (question, index) => {
+
+        question.number =
+          index + 1;
+
+
+        if (question.answers.length === 0) {
+
+          console.warn(
+            `La question ${question.number} n'a aucune réponse.`
+          );
+
+        }
+
+
+        const correctAnswers =
+          question.answers.filter(
+            answer => answer.correct
+          );
+
+
+        if (correctAnswers.length === 0) {
+
+          console.warn(
+            `La question ${question.number} n'a pas de bonne réponse.`
+          );
+
+        }
+
+      }
+    );
+
+
+    return parsedQuestions;
+
+  }
+
+
+  /*
+   * =========================================================
+   * MARKDOWN INLINE
+   *
+   * Transforme :
+   *
+   * `int compteur = 0;`
+   *
+   * en élément <code>.
+   *
+   * PAS de fallback Prism ici.
+   * =========================================================
+   */
+
+  function renderInlineMarkdown(text) {
+
+    const fragment =
+      document.createDocumentFragment();
+
+
+    const regex =
+      /`([^`]+)`/g;
+
+
+    let lastIndex = 0;
+    let match;
+
+
+    while (
+      (match = regex.exec(text)) !== null
+    ) {
+
+      /*
+       * Texte avant le code.
+       */
+
+      if (match.index > lastIndex) {
+
+        fragment.appendChild(
+          document.createTextNode(
+            text.substring(
+              lastIndex,
+              match.index
+            )
+          )
+        );
+
+      }
+
+
+      /*
+       * Code inline.
+       */
+
+      const code =
+        document.createElement("code");
+
+
+      code.className =
+        "inline-code";
+
+
+      code.textContent =
+        match[1];
+
+
+      fragment.appendChild(
+        code
+      );
+
+
+      lastIndex =
+        regex.lastIndex;
+
+    }
+
+
+    /*
+     * Texte après le dernier code.
+     */
+
+    if (lastIndex < text.length) {
+
+      fragment.appendChild(
+        document.createTextNode(
+          text.substring(lastIndex)
+        )
+      );
+
+    }
+
+
+    return fragment;
+
+  }
+
+
+  /*
+   * =========================================================
+   * CREATION D'UN BLOC DE CODE PRISM
+   *
+   * Aucun fallback.
+   * Aucun remplacement de HTML.
+   * Prism reçoit directement le texte C++.
+   * =========================================================
+   */
+
+  function createCodeBlock(
+    codeText,
+    language,
+    additionalClass = ""
+  ) {
+
+    const pre =
+      document.createElement("pre");
+
+
+    const code =
+      document.createElement("code");
+
+
+    /*
+     * Pour le questionnaire C++,
+     * on utilise C++ par défaut.
+     */
+
+    let prismLanguage =
+      "cpp";
+
+
+    if (
+      language &&
+      language.toLowerCase() === "c"
+    ) {
+
+      prismLanguage =
+        "c";
+
+    }
+
+
+    pre.className =
+      `language-${prismLanguage}`;
+
+
+    if (additionalClass) {
+
+      pre.classList.add(
+        additionalClass
+      );
+
+    }
+
+
+    code.className =
+      `language-${prismLanguage}`;
+
+
+    /*
+     * IMPORTANT :
+     *
+     * textContent conserve exactement le code.
+     *
+     * Prism transformera ensuite lui-même
+     * le contenu en HTML de coloration.
+     */
+
+    code.textContent =
+      codeText;
+
+
+    pre.appendChild(
+      code
+    );
+
+
+    /*
+     * Coloration syntaxique.
+     *
+     * Il n'y a volontairement AUCUN fallback.
+     */
+
+    Prism.highlightElement(
+      code
+    );
+
+
+    return pre;
+
+  }
+
+
+  /*
+   * =========================================================
+   * AFFICHAGE DU QUESTIONNAIRE
+   * =========================================================
+   */
+
+  function displayQuiz(questions) {
+
+    const quiz =
+      document.getElementById("quiz");
+
+
+    quiz.innerHTML = "";
+
+
+    document
+      .getElementById("result")
+      .style.display = "none";
+
+
+    document
+      .getElementById("submitButton")
+      .style.display = "block";
+
+
+    questions.forEach(
+      (question, questionIndex) => {
+
+        const questionElement =
+          document.createElement("div");
+
+
+        questionElement.className =
+          "question";
+
+
+        /*
+         * -----------------------------------------------------
+         * Titre de la question
+         * -----------------------------------------------------
+         */
+
+        const title =
+          document.createElement("h2");
+
+
+        title.appendChild(
+          document.createTextNode(
+            `Question ${questionIndex + 1} : `
+          )
+        );
+
+
+        title.appendChild(
+          renderInlineMarkdown(
+            question.text
+          )
+        );
+
+
+        questionElement.appendChild(
+          title
+        );
+
+
+        /*
+         * -----------------------------------------------------
+         * Code de la question
+         * -----------------------------------------------------
+         */
+
+        if (question.code) {
+
+          questionElement.appendChild(
+            createCodeBlock(
+              question.code,
+              question.language || "cpp"
+            )
+          );
+
+        }
+
+
+        /*
+         * -----------------------------------------------------
+         * Réponses
+         * -----------------------------------------------------
+         */
+
+        question.answers.forEach(
+          (answer, answerIndex) => {
+
+            const label =
+              document.createElement("label");
+
+
+            label.className =
+              "answer";
+
+
+            /*
+             * Radio
+             */
+
+            const input =
+              document.createElement("input");
+
+
+            input.type =
+              "radio";
+
+
+            input.name =
+              `question-${questionIndex}`;
+
+
+            input.value =
+              answerIndex;
+
+
+            input.addEventListener(
+              "change",
+              saveAnswers
+            );
+
+
+            /*
+             * Contenu de la réponse
+             */
+
+            const content =
+              document.createElement("span");
+
+
+            content.className =
+              "answer-content";
+
+
+            /*
+             * Texte de réponse.
+             *
+             * Les `...` sont convertis en code inline.
+             */
+
+            if (answer.text) {
+
+              content.appendChild(
+                renderInlineMarkdown(
+                  answer.text
+                )
+              );
+
+            }
+
+
+            /*
+             * Bloc de code dans la réponse.
+             */
+
+            if (answer.code) {
+
+              content.appendChild(
+                createCodeBlock(
+                  answer.code,
+                  answer.language || "cpp",
+                  "answer-code"
+                )
+              );
+
+            }
+
+
+            label.appendChild(
+              input
+            );
+
+
+            label.appendChild(
+              content
+            );
+
+
+            questionElement.appendChild(
+              label
+            );
+
+          }
+        );
+
+
+        quiz.appendChild(
+          questionElement
+        );
+
+      }
+    );
+
+  }
+
+
+  /*
+   * =========================================================
+   * SAUVEGARDE
+   * =========================================================
+   */
+
+  function saveAnswers() {
+
+    const answersGiven = [];
+
+
+    questions.forEach(
+      (question, questionIndex) => {
+
+        const selected =
+          document.querySelector(
+            `input[name="question-${questionIndex}"]:checked`
+          );
+
+
+        answersGiven.push(
+          selected
+            ? parseInt(selected.value, 10)
+            : null
+        );
+
+      }
+    );
+
+
+    let savedData = {};
+
+
+    const existing =
+      sessionStorage.getItem(
+        STORAGE_KEY
+      );
+
+
+    if (existing) {
+
+      try {
+
+        savedData =
+          JSON.parse(existing);
+
+      }
+      catch (error) {
+
+        savedData = {};
+
+      }
+
+    }
+
+
+    savedData.answers =
+      answersGiven;
+
+
+    savedData.total =
+      questions.length;
+
+
+    if (
+      typeof savedData.completed !== "boolean"
+    ) {
+
+      savedData.completed =
+        false;
+
+    }
+
+
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(savedData)
+    );
+
+  }
+
+
+  /*
+   * =========================================================
+   * VALIDATION
+   * =========================================================
+   */
+
+  document
+    .getElementById("submitButton")
+    .addEventListener(
+      "click",
+      function() {
+
+        let score = 0;
+
+
+        const questionElements =
+          document.querySelectorAll(
+            ".question"
+          );
+
+
+        const answersGiven = [];
+
+
+        questions.forEach(
+          (question, questionIndex) => {
+
+            const selected =
+              document.querySelector(
+                `input[name="question-${questionIndex}"]:checked`
+              );
+
+
+            const questionElement =
+              questionElements[questionIndex];
+
+
+            const answers =
+              questionElement.querySelectorAll(
+                ".answer"
+              );
+
+
+            answersGiven.push(
+              selected
+                ? parseInt(selected.value, 10)
+                : null
+            );
+
+
+            /*
+             * Afficher les bonnes réponses.
+             */
+
+            question.answers.forEach(
+              (answer, answerIndex) => {
+
+                if (answer.correct) {
+
+                  answers[answerIndex]
+                    .classList.add("correct");
+
+                }
+
+              }
+            );
+
+
+            /*
+             * Aucune réponse.
+             */
+
+            if (!selected) {
+
+              const feedback =
+                document.createElement("div");
+
+
+              feedback.className =
+                "feedback";
+
+
+              feedback.textContent =
+                "⚠️ Aucune réponse sélectionnée.";
+
+
+              questionElement.appendChild(
+                feedback
+              );
+
+
+              return;
+
+            }
+
+
+            const selectedIndex =
+              parseInt(
+                selected.value,
+                10
+              );
+
+
+            const selectedAnswer =
+              question.answers[selectedIndex];
+
+
+            /*
+             * Bonne réponse.
+             */
+
+            if (selectedAnswer.correct) {
+
+              score++;
+
+
+              answers[selectedIndex]
+                .classList.add("correct");
+
+
+              const feedback =
+                document.createElement("div");
+
+
+              feedback.className =
+                "feedback";
+
+
+              feedback.textContent =
+                "✓ Bonne réponse !";
+
+
+              questionElement.appendChild(
+                feedback
+              );
+
+            }
+
+
+            /*
+             * Mauvaise réponse.
+             */
+
+            else {
+
+              answers[selectedIndex]
+                .classList.add("incorrect");
+
+
+              const feedback =
+                document.createElement("div");
+
+
+              feedback.className =
+                "feedback";
+
+
+              feedback.textContent =
+                "✗ Mauvaise réponse.";
+
+
+              questionElement.appendChild(
+                feedback
+              );
+
+            }
+
+          }
+        );
+
+
+        /*
+         * Pourcentage
+         */
+
+        const percentage =
+          Math.round(
+            (score / questions.length) * 100
+          );
+
+
+        /*
+         * Message
+         */
+
+        const message =
+          getScoreMessage(
+            percentage
+          );
+
+
+        /*
+         * Résultat
+         */
+
+        const resultData = {
+
+          score:
+            score,
+
+          total:
+            questions.length,
+
+          percentage:
+            percentage,
+
+          message:
+            message,
+
+          answers:
+            answersGiven,
+
+          completed:
+            true
+
+        };
+
+
+        sessionStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify(resultData)
+        );
+
+
+        showResult(
+          resultData,
+          false
+        );
+
+
+        /*
+         * Désactiver les réponses.
+         */
+
+        document
+          .querySelectorAll("#quiz input")
+          .forEach(
+            input => {
+
+              input.disabled = true;
+
+            }
+          );
+
+
+        /*
+         * Masquer le bouton.
+         */
+
+        document
+          .getElementById("submitButton")
+          .style.display =
+            "none";
+
+
+        /*
+         * Aller au résultat.
+         */
+
+        document
+          .getElementById("result")
+          .scrollIntoView({
+            behavior: "smooth"
+          });
+
+      }
+    );
+
+
+  /*
+   * =========================================================
+   * RESTAURATION
+   * =========================================================
+   */
+
+  function restoreSavedState() {
+
+    const saved =
+      sessionStorage.getItem(
+        STORAGE_KEY
+      );
+
+
+    if (!saved) {
+
+      return;
+
+    }
+
+
+    try {
+
+      const savedData =
+        JSON.parse(saved);
+
+
+      /*
+       * Vérifier le nombre de questions.
+       */
+
+      if (
+        savedData.total !== questions.length
+      ) {
+
+        sessionStorage.removeItem(
+          STORAGE_KEY
+        );
+
+        return;
+
+      }
+
+
+      /*
+       * Restaurer les réponses.
+       */
+
+      if (
+        Array.isArray(savedData.answers)
+      ) {
+
+        savedData.answers.forEach(
+          (answerIndex, questionIndex) => {
+
+            if (
+              answerIndex === null ||
+              answerIndex === undefined
+            ) {
+
+              return;
+
+            }
+
+
+            const input =
+              document.querySelector(
+                `input[name="question-${questionIndex}"][value="${answerIndex}"]`
+              );
+
+
+            if (input) {
+
+              input.checked = true;
+
+            }
+
+          }
+        );
+
+      }
+
+
+      /*
+       * Restaurer la correction.
+       */
+
+      if (
+        savedData.completed === true
+      ) {
+
+        restoreCorrection(
+          savedData
+        );
+
+      }
+
+    }
+    catch (error) {
+
+      console.error(
+        "Impossible de restaurer le questionnaire :",
+        error
+      );
+
+
+      sessionStorage.removeItem(
+        STORAGE_KEY
+      );
+
+    }
+
+  }
+
+
+  /*
+   * =========================================================
+   * RESTAURER LA CORRECTION
+   * =========================================================
+   */
+
+  function restoreCorrection(resultData) {
+
+    questions.forEach(
+      (question, questionIndex) => {
+
+        const questionElement =
+          document.querySelectorAll(
+            ".question"
+          )[questionIndex];
+
+
+        if (!questionElement) {
+
+          return;
+
+        }
+
+
+        const answers =
+          questionElement.querySelectorAll(
+            ".answer"
+          );
+
+
+        /*
+         * Bonnes réponses
+         */
+
+        question.answers.forEach(
+          (answer, answerIndex) => {
+
+            if (answer.correct) {
+
+              answers[answerIndex]
+                .classList.add("correct");
+
+            }
+
+          }
+        );
+
+
+        /*
+         * Réponse donnée
+         */
+
+        const selectedIndex =
+          resultData.answers[questionIndex];
+
+
+        if (
+          selectedIndex === null ||
+          selectedIndex === undefined
+        ) {
+
+          const feedback =
+            document.createElement("div");
+
+
+          feedback.className =
+            "feedback";
+
+
+          feedback.textContent =
+            "⚠️ Aucune réponse sélectionnée.";
+
+
+          questionElement.appendChild(
+            feedback
+          );
+
+
+          return;
+
+        }
+
+
+        const selectedAnswer =
+          question.answers[selectedIndex];
+
+
+        if (!selectedAnswer) {
+
+          return;
+
+        }
+
+
+        /*
+         * Mauvaise réponse
+         */
+
+        if (!selectedAnswer.correct) {
+
+          answers[selectedIndex]
+            .classList.add("incorrect");
+
+        }
+
+
+        const feedback =
+          document.createElement("div");
+
+
+        feedback.className =
+          "feedback";
+
+
+        feedback.textContent =
+          selectedAnswer.correct
+            ? "✓ Bonne réponse !"
+            : "✗ Mauvaise réponse.";
+
+
+        questionElement.appendChild(
+          feedback
+        );
+
+      }
+    );
+
+
+    /*
+     * Désactiver les réponses.
+     */
+
+    document
+      .querySelectorAll("#quiz input")
+      .forEach(
+        input => {
+
+          input.disabled = true;
+
+        }
+      );
+
+
+    /*
+     * Masquer le bouton.
+     */
+
+    document
+      .getElementById("submitButton")
+      .style.display =
+        "none";
+
+
+    /*
+     * Afficher le résultat.
+     */
+
+    showResult(
+      resultData,
+      true
+    );
+
+  }
+
+
+  /*
+   * =========================================================
+   * AFFICHER LE RESULTAT
+   * =========================================================
+   */
+
+  function showResult(
+    resultData,
+    restored
+  ) {
+
+    document
+      .getElementById("score")
+      .textContent =
+        `${resultData.score} / ${resultData.total} — ${resultData.percentage}%`;
+
+
+    document
+      .getElementById("scoreMessage")
+      .textContent =
+        resultData.message;
+
+
+    const savedResult =
+      document.getElementById(
+        "savedResult"
+      );
+
+
+    savedResult.style.display =
+      restored
+        ? "block"
+        : "none";
+
+
+    document
+      .getElementById("result")
+      .style.display =
+        "block";
+
+  }
+
+
+  /*
+   * =========================================================
+   * MESSAGE SELON LE SCORE
+   * =========================================================
+   */
+
+  function getScoreMessage(
+    percentage
+  ) {
+
+    if (percentage === 100) {
+
+      return "Excellent ! 🎉";
+
+    }
+
+
+    if (percentage >= 80) {
+
+      return "Très bon résultat !";
+
+    }
+
+
+    if (percentage >= 60) {
+
+      return "Bon résultat, mais il reste quelques notions à revoir.";
+
+    }
+
+
+    return "Certaines notions méritent d'être revues.";
+
+  }
+
+
+  /*
+   * =========================================================
+   * RECOMMENCER
+   * =========================================================
+   */
+
+  document
+    .getElementById("restartButton")
+    .addEventListener(
+      "click",
+      function() {
+
+        sessionStorage.removeItem(
+          STORAGE_KEY
+        );
+
+
+        displayQuiz(
+          questions
+        );
+
+
+        window.scrollTo({
+
+          top: 0,
+
+          behavior: "smooth"
+
+        });
+
+      }
+    );
+
+
+  /*
+   * =========================================================
+   * SÉCURITÉ
+   * =========================================================
+   */
+
+  function escapeHTML(text) {
+
+    return String(text)
+
+      .replace(
+        /&/g,
+        "&amp;"
+      )
+
+      .replace(
+        /</g,
+        "&lt;"
+      )
+
+      .replace(
+        />/g,
+        "&gt;"
+      )
+
+      .replace(
+        /"/g,
+        "&quot;"
+      )
+
+      .replace(
+        /'/g,
+        "&#039;"
+      );
+
+  }
+
+</script>
+
+</body>
+</html>
