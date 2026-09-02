@@ -83,7 +83,9 @@
     }
 
     /*
-     * Code inline provenant de `...`
+     * =========================================================
+     * CODE INLINE
+     * =========================================================
      */
 
     code.inline-code {
@@ -105,7 +107,9 @@
     }
 
     /*
-     * Blocs de code Prism
+     * =========================================================
+     * BLOCS DE CODE
+     * =========================================================
      */
 
     pre[class*="language-"] {
@@ -133,6 +137,12 @@
       margin-top: 12px !important;
     }
 
+    /*
+     * =========================================================
+     * BOUTONS
+     * =========================================================
+     */
+
     button {
       border: 0;
       background: #4263eb;
@@ -151,6 +161,12 @@
       margin-top: 10px;
     }
 
+    /*
+     * =========================================================
+     * RESULTAT
+     * =========================================================
+     */
+
     #result {
       display: none;
       background: white;
@@ -167,6 +183,12 @@
       margin-bottom: 10px;
     }
 
+    /*
+     * =========================================================
+     * CORRECTION
+     * =========================================================
+     */
+
     .correct {
       background: #d3f9d8 !important;
       border-color: #51cf66 !important;
@@ -181,6 +203,12 @@
       margin-top: 15px;
       font-weight: 600;
     }
+
+    /*
+     * =========================================================
+     * MESSAGES
+     * =========================================================
+     */
 
     .error {
       color: #c92a2a;
@@ -219,6 +247,12 @@
   <div id="error"></div>
 
   <form id="quiz"></form>
+
+  <!--
+    Le bouton est caché par défaut.
+    Il n'apparaît que lorsque toutes les questions
+    ont été répondues.
+  -->
 
   <button
     id="submitButton"
@@ -260,12 +294,13 @@
      PRISM.JS
 
      IMPORTANT :
-     C++ dépend des définitions chargées par C.
-     L'ordre est donc volontairement :
-     
+     L'ordre de chargement est volontairement :
+
      1. Prism
      2. C
      3. C++
+
+     Aucun fallback.
      ========================================================= -->
 
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
@@ -276,6 +311,12 @@
 
 
 <script>
+
+  /*
+   * =========================================================
+   * VARIABLES
+   * =========================================================
+   */
 
   let questions = [];
 
@@ -300,7 +341,7 @@
 
   /*
    * =========================================================
-   * CHARGEMENT DU MARKDOWN
+   * CHARGEMENT DE questions.md
    * =========================================================
    */
 
@@ -350,6 +391,10 @@
           .getElementById("loading")
           .style.display = "none";
 
+
+        /*
+         * Restaurer les réponses précédentes.
+         */
 
         restoreSavedState();
 
@@ -417,13 +462,17 @@
 
         if (!inCodeBlock) {
 
+          /*
+           * Début du bloc.
+           */
+
           inCodeBlock = true;
 
           codeLines = [];
 
 
           /*
-           * Récupérer le langage :
+           * Récupérer le langage.
            *
            * ```cpp
            * ```c
@@ -442,6 +491,10 @@
 
         }
         else {
+
+          /*
+           * Fin du bloc.
+           */
 
           inCodeBlock = false;
 
@@ -486,7 +539,7 @@
 
       /*
        * -------------------------------------------------------
-       * Ligne à l'intérieur d'un bloc de code
+       * Ligne dans un bloc de code
        * -------------------------------------------------------
        */
 
@@ -692,9 +745,7 @@
    *
    * `int compteur = 0;`
    *
-   * en élément <code>.
-   *
-   * PAS de fallback Prism ici.
+   * en véritable élément <code>.
    * =========================================================
    */
 
@@ -763,6 +814,7 @@
 
     /*
      * Texte après le dernier code.
+
      */
 
     if (lastIndex < text.length) {
@@ -783,11 +835,7 @@
 
   /*
    * =========================================================
-   * CREATION D'UN BLOC DE CODE PRISM
-   *
-   * Aucun fallback.
-   * Aucun remplacement de HTML.
-   * Prism reçoit directement le texte C++.
+   * CREATION D'UN BLOC DE CODE
    * =========================================================
    */
 
@@ -806,8 +854,7 @@
 
 
     /*
-     * Pour le questionnaire C++,
-     * on utilise C++ par défaut.
+     * C++ par défaut.
      */
 
     let prismLanguage =
@@ -845,10 +892,9 @@
     /*
      * IMPORTANT :
      *
-     * textContent conserve exactement le code.
+     * textContent conserve le code tel quel.
      *
-     * Prism transformera ensuite lui-même
-     * le contenu en HTML de coloration.
+     * Prism s'occupe ensuite de la coloration.
      */
 
     code.textContent =
@@ -862,8 +908,6 @@
 
     /*
      * Coloration syntaxique.
-     *
-     * Il n'y a volontairement AUCUN fallback.
      */
 
     Prism.highlightElement(
@@ -896,9 +940,16 @@
       .style.display = "none";
 
 
+    /*
+     * Le bouton est volontairement caché.
+     *
+     * updateSubmitButtonVisibility()
+     * décidera ensuite s'il doit apparaître.
+     */
+
     document
       .getElementById("submitButton")
-      .style.display = "block";
+      .style.display = "none";
 
 
     questions.forEach(
@@ -914,7 +965,7 @@
 
         /*
          * -----------------------------------------------------
-         * Titre de la question
+         * TITRE
          * -----------------------------------------------------
          */
 
@@ -943,7 +994,7 @@
 
         /*
          * -----------------------------------------------------
-         * Code de la question
+         * CODE DE LA QUESTION
          * -----------------------------------------------------
          */
 
@@ -961,7 +1012,7 @@
 
         /*
          * -----------------------------------------------------
-         * Réponses
+         * REPONSES
          * -----------------------------------------------------
          */
 
@@ -996,9 +1047,21 @@
               answerIndex;
 
 
+            /*
+             * Chaque changement sauvegarde
+             * les réponses puis vérifie si
+             * toutes les questions sont répondues.
+             */
+
             input.addEventListener(
               "change",
-              saveAnswers
+              function() {
+
+                saveAnswers();
+
+                updateSubmitButtonVisibility();
+
+              }
             );
 
 
@@ -1015,9 +1078,10 @@
 
 
             /*
-             * Texte de réponse.
+             * Texte de la réponse.
              *
-             * Les `...` sont convertis en code inline.
+             * Les éléments `...`
+             * deviennent du code inline.
              */
 
             if (answer.text) {
@@ -1032,7 +1096,8 @@
 
 
             /*
-             * Bloc de code dans la réponse.
+             * Bloc de code appartenant
+             * à la réponse.
              */
 
             if (answer.code) {
@@ -1073,12 +1138,81 @@
       }
     );
 
+
+    /*
+     * Vérifier immédiatement si des réponses
+     * étaient déjà présentes.
+     */
+
+    updateSubmitButtonVisibility();
+
   }
 
 
   /*
    * =========================================================
-   * SAUVEGARDE
+   * AFFICHER / MASQUER LE BOUTON
+   *
+   * Le bouton n'est visible que lorsque
+   * TOUTES les questions ont une réponse.
+   * =========================================================
+   */
+
+  function updateSubmitButtonVisibility() {
+
+    const submitButton =
+      document.getElementById(
+        "submitButton"
+      );
+
+
+    /*
+     * Si le questionnaire est vide,
+     * le bouton reste caché.
+     */
+
+    if (questions.length === 0) {
+
+      submitButton.style.display =
+        "none";
+
+      return;
+
+    }
+
+
+    /*
+     * Vérifier chaque question.
+     */
+
+    const allAnswered =
+      questions.every(
+        (question, questionIndex) => {
+
+          return document.querySelector(
+            `input[name="question-${questionIndex}"]:checked`
+          ) !== null;
+
+        }
+      );
+
+
+    /*
+     * Afficher uniquement si toutes
+     * les questions ont été répondues.
+     */
+
+    submitButton.style.display =
+      allAnswered
+        ? "block"
+        : "none";
+
+  }
+
+
+  /*
+   * =========================================================
+   * SAUVEGARDER LES REPONSES
    * =========================================================
    */
 
@@ -1106,6 +1240,10 @@
     );
 
 
+    /*
+     * Récupérer les données déjà sauvegardées.
+     */
+
     let savedData = {};
 
 
@@ -1132,6 +1270,10 @@
     }
 
 
+    /*
+     * Sauvegarder les réponses.
+     */
+
     savedData.answers =
       answersGiven;
 
@@ -1139,6 +1281,11 @@
     savedData.total =
       questions.length;
 
+
+    /*
+     * Tant que le questionnaire n'est pas
+     * validé, completed reste false.
+     */
 
     if (
       typeof savedData.completed !== "boolean"
@@ -1160,7 +1307,7 @@
 
   /*
    * =========================================================
-   * VALIDATION
+   * VALIDATION DU QUESTIONNAIRE
    * =========================================================
    */
 
@@ -1169,6 +1316,33 @@
     .addEventListener(
       "click",
       function() {
+
+        /*
+         * Sécurité :
+         * ne rien faire si une question
+         * n'a pas été répondue.
+         */
+
+        const allAnswered =
+          questions.every(
+            (question, questionIndex) => {
+
+              return document.querySelector(
+                `input[name="question-${questionIndex}"]:checked`
+              ) !== null;
+
+            }
+          );
+
+
+        if (!allAnswered) {
+
+          updateSubmitButtonVisibility();
+
+          return;
+
+        }
+
 
         let score = 0;
 
@@ -1201,15 +1375,24 @@
               );
 
 
+            /*
+             * Enregistrer la réponse.
+             */
+
+            const selectedIndex =
+              parseInt(
+                selected.value,
+                10
+              );
+
+
             answersGiven.push(
-              selected
-                ? parseInt(selected.value, 10)
-                : null
+              selectedIndex
             );
 
 
             /*
-             * Afficher les bonnes réponses.
+             * Afficher toutes les bonnes réponses.
              */
 
             question.answers.forEach(
@@ -1224,41 +1407,6 @@
 
               }
             );
-
-
-            /*
-             * Aucune réponse.
-             */
-
-            if (!selected) {
-
-              const feedback =
-                document.createElement("div");
-
-
-              feedback.className =
-                "feedback";
-
-
-              feedback.textContent =
-                "⚠️ Aucune réponse sélectionnée.";
-
-
-              questionElement.appendChild(
-                feedback
-              );
-
-
-              return;
-
-            }
-
-
-            const selectedIndex =
-              parseInt(
-                selected.value,
-                10
-              );
 
 
             const selectedAnswer =
@@ -1330,7 +1478,7 @@
 
 
         /*
-         * Pourcentage
+         * Pourcentage.
          */
 
         const percentage =
@@ -1340,7 +1488,7 @@
 
 
         /*
-         * Message
+         * Message.
          */
 
         const message =
@@ -1350,7 +1498,7 @@
 
 
         /*
-         * Résultat
+         * Résultat final.
          */
 
         const resultData = {
@@ -1376,11 +1524,19 @@
         };
 
 
+        /*
+         * Sauvegarder le résultat.
+         */
+
         sessionStorage.setItem(
           STORAGE_KEY,
           JSON.stringify(resultData)
         );
 
+
+        /*
+         * Afficher le résultat.
+         */
 
         showResult(
           resultData,
@@ -1404,7 +1560,7 @@
 
 
         /*
-         * Masquer le bouton.
+         * Masquer le bouton de validation.
          */
 
         document
@@ -1429,7 +1585,7 @@
 
   /*
    * =========================================================
-   * RESTAURATION
+   * RESTAURATION DE L'ÉTAT
    * =========================================================
    */
 
@@ -1443,6 +1599,13 @@
 
     if (!saved) {
 
+      /*
+       * Aucune sauvegarde :
+       * le bouton reste caché.
+       */
+
+      updateSubmitButtonVisibility();
+
       return;
 
     }
@@ -1455,7 +1618,8 @@
 
 
       /*
-       * Vérifier le nombre de questions.
+       * Vérifier que le questionnaire
+       * correspond toujours.
        */
 
       if (
@@ -1465,6 +1629,8 @@
         sessionStorage.removeItem(
           STORAGE_KEY
         );
+
+        updateSubmitButtonVisibility();
 
         return;
 
@@ -1511,7 +1677,8 @@
 
 
       /*
-       * Restaurer la correction.
+       * Si le questionnaire avait déjà
+       * été corrigé, restaurer la correction.
        */
 
       if (
@@ -1521,6 +1688,19 @@
         restoreCorrection(
           savedData
         );
+
+      }
+
+      else {
+
+        /*
+         * Questionnaire non terminé :
+         * afficher le bouton uniquement
+         * si toutes les questions ont
+         * maintenant une réponse.
+         */
+
+        updateSubmitButtonVisibility();
 
       }
 
@@ -1536,6 +1716,9 @@
       sessionStorage.removeItem(
         STORAGE_KEY
       );
+
+
+      updateSubmitButtonVisibility();
 
     }
 
@@ -1573,7 +1756,7 @@
 
 
         /*
-         * Bonnes réponses
+         * Afficher les bonnes réponses.
          */
 
         question.answers.forEach(
@@ -1591,7 +1774,7 @@
 
 
         /*
-         * Réponse donnée
+         * Réponse donnée.
          */
 
         const selectedIndex =
@@ -1602,23 +1785,6 @@
           selectedIndex === null ||
           selectedIndex === undefined
         ) {
-
-          const feedback =
-            document.createElement("div");
-
-
-          feedback.className =
-            "feedback";
-
-
-          feedback.textContent =
-            "⚠️ Aucune réponse sélectionnée.";
-
-
-          questionElement.appendChild(
-            feedback
-          );
-
 
           return;
 
@@ -1637,7 +1803,7 @@
 
 
         /*
-         * Mauvaise réponse
+         * Mauvaise réponse.
          */
 
         if (!selectedAnswer.correct) {
@@ -1647,6 +1813,10 @@
 
         }
 
+
+        /*
+         * Feedback.
+         */
 
         const feedback =
           document.createElement("div");
@@ -1686,7 +1856,7 @@
 
 
     /*
-     * Masquer le bouton.
+     * Masquer le bouton de validation.
      */
 
     document
@@ -1736,10 +1906,18 @@
       );
 
 
-    savedResult.style.display =
-      restored
-        ? "block"
-        : "none";
+    if (restored) {
+
+      savedResult.style.display =
+        "block";
+
+    }
+    else {
+
+      savedResult.style.display =
+        "none";
+
+    }
 
 
     document
@@ -1798,15 +1976,27 @@
       "click",
       function() {
 
+        /*
+         * Supprimer la sauvegarde.
+         */
+
         sessionStorage.removeItem(
           STORAGE_KEY
         );
 
 
+        /*
+         * Recréer le questionnaire.
+         */
+
         displayQuiz(
           questions
         );
 
+
+        /*
+         * Remonter en haut.
+         */
 
         window.scrollTo({
 
@@ -1822,7 +2012,7 @@
 
   /*
    * =========================================================
-   * SÉCURITÉ
+   * SECURITE
    * =========================================================
    */
 
