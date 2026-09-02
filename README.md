@@ -1,4 +1,4 @@
-Quizzy
+# Quizzy
 
 Makes interactive quizzes from Markdown files.
 
